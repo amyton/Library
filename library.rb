@@ -1,27 +1,54 @@
-# DONE Users should be able to add books to a library 
-# DONE Books should be able to have information saved about them (author, title, description)
-# A user should be able to check out books from the library for one week intervals
-# DONE A user should not be able to check out more than two books at any given time
-# Checked-out books should be associated with a user
-# Users with overdue books should not be able to request any new books until they turn all their overdue books in
-# DONE Users should be able to check in books to the library when they're finished with them
-# DONE Users should be able to check a book's status (e.g. available, checked out, overdue or lost)
-# Users should be able to see a list of who has checked out which book and when those books are due to be returned
-# Users should be able to see a list of books that are overdue
-
-
+# User class contains the following information:
+#
+# Name - name of the User
+# Rented books - Array of rented books by User
+# Overdue - Overdue books 
 
 class User
-  attr_accessor :checked_out_books
+  attr_accessor :name, :rented_books
 
   def initialize(name)
     @name = name
-    @checked_out_books = []
+    @rented_books = []
+    @overdue_books = []
+  end
+
+  # Adds book to User's list of checked-out books array
+  # Params:
+  # 
+  # Book - Title of the book
+    
+  def rent_book(book)
+    @rented_books << book 
+  end
+
+  # Can User rent books?
+  # If User's rented_books array has any over due books, or
+  # if User's rented_books array contain more than two books,
+  # User will be able to rent books. 
+  # If not, it will return false.
+
+  def can_rent_books?
+    @rented_books.each do |b|
+      if b.status == "overdue"
+        return false
+      end
+    end
+    @rented_books.count < 2
   end
 end
 
+# Book class contains information about each book:
+# 
+# Title - the String to be added
+# Author - the String to be added
+# Description - the optional String to be added
+# Status 
+# Due Date
+# Renter
+
 class Book
-  attr_accessor :status, :due_date
+  attr_accessor :status, :due_date, :renter
   attr_reader :title, :author, :description
 
   def initialize(title, author, description=nil)
@@ -29,13 +56,29 @@ class Book
     @author = author
     @description = description
     @status = "available"
+    @due_date = nil 
+    @renter = nil
   end
 end
 
+# Library class contains records of users and books
+#
+# Books - Books are to be added in Array
+# Users - Users are to be added in Array
+
 class Library
+  attr_accessor :books, :users
+
   def initialize
     @books = []
+    @users = []
   end 
+
+  # Add book to Library books array
+  #
+  # book - the String to be added
+  #
+  # Returns the Array with the new book
 
   def add_book(book)
     if book.is_a?(Book)
@@ -43,8 +86,19 @@ class Library
     end
   end
 
-  # Users should be able to check a book's status 
-  # (e.g. available, checked out, overdue or lost)
+  # Add User to users array
+  #
+  # user - the String to be added
+  #
+  # Returns the Array with the new user in Library
+
+  def add_user(user)
+    @users << user 
+  end
+
+  # Check a status on a book in Library
+  #
+  # e.g. available, checked out, overdue or lost
 
   def book_status
     @books.each do |book|
@@ -53,75 +107,110 @@ class Library
   end
 
   # Check out available books in the library
-  # user, book - the string to be added.
-  # e.g. check_out("amy", "hamlet") => 
-  # Returns the array with the new user + book added to the end
+  #
+  # user, book - the String to be added
+  #
+  # Returns the Array with the new user + book added to the end
 
   def check_out(user, book)
-    if book.status == "available" && user.checked_out_books.length < 2 # && OVERDUE = nil
-      user.checked_out_books << book
+    if user.can_rent_books? && book.status == "available" 
+      user.rented_books << book
+
       book.status = "checked out"
-      puts "You checked out #{book.title}."
+      book.due_date = Time.now + (7*24*60*60)
+      book.renter = user.name
+
+      puts "#{user.name} checked out #{book.title}."
     else
-      puts "Sorry, that book is unavailable right now."
+      puts "Sorry, #{book.title} is unavailable right now."
     end
   end
 
-  def check_in(user, book)
-    if user.checked_out_books.include?(book)
-      user.checked_out_books.delete_if { |b| b == book } 
+  # Check in books to the library
+  #
+  # user, book - the String to be added
+  #
+  # Returns a message to the user 
+
+  def check_in(user, book)  
+    if user.rented_books(book) 
       book.status  = "available"
+      book.due_date = nil
+      book.renter = nil
+
+      @books << book 
+
+      user.rented_books.delete(book)
+
       puts "Thanks for returning #{book.title}!"
     else
       puts "You don't have that book to check in."
     end
   end
 
-  def checked_out_books
-  end
+  # Check for overdue books
+  #
+  # Returns message to the user
 
-  def overdue_books(book)
-    puts "#{@title}, checked by #{@name}" if Book.status == "overdue"
+  def overdue? 
+    @books.each do |book|
+      if book.status == "overdue"
+        puts "#{book.title} is overdue. :("
+      elsif book.status == "checked out"
+        if Time.now > book.due_date
+          book.status = "overdue"
+          puts "#{book.title} is overdue. :("
+        end
+      else
+        puts "YEAHHBOI There are no overdue books."
+      end
+    end   
   end
 
 end 
 
 library = Library.new
+
 amy = User.new("amy")
 kevin = User.new("kevin")
+nicole = User.new("nicole")
 
-derp = Book.new("derp", "nyan", "cats")
-herp = Book.new("herp", "finn and jake", "royal promises")
-hamlet = Book.new("hamlet", "shakespeare", "everyone dies")
-
-
-puts "Book 1 title: #{derp.title}"
-puts "Book 2 title: #{herp.title}"
-puts "Book 3 title: #{hamlet.title}"
+derp = Book.new("Derp", "Nyan", "Cats")
+herp = Book.new("Herp", "Finn and Jake", "Royal promises")
+hamlet = Book.new("Hamlet", "Shakespeare", "Everyone dies")
 
 library.add_book(derp)
 library.add_book(herp)
 library.add_book(hamlet)
 
-library.book_status
-
-library.check_out(amy, derp)
+puts "Added all the books. Booyakasha!"
 
 library.book_status
 
+puts "----------------------------"
+
 library.check_out(amy, derp)
+library.check_out(kevin, herp)
 
-library.checked_out_books
+puts "----------------------------"
 
-library.check_in(amy, derp)
+library.book_status
 
-library.check_in(amy, herp)
+puts "----------------------------"
 
-library.check_out(kevin, derp)
+library.check_out(amy, derp)
+library.check_out(nicole, derp)
 
-library.checked_out_books
+puts "----------------------------"
 
-puts "FUCK YEAH"
+library.overdue?
+
+puts "----------------------------"
+
+library.check_in(amy, derp)  
+library.check_out(nicole, derp)
+
+puts "----------------------------"
 
 
 
