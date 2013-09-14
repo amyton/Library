@@ -133,7 +133,7 @@ class Library
   # Returns a message to the user 
 
   def check_in(user, book)  
-    if user.rented_books(book) 
+    if user.rented_books.include?(book) 
       book.status  = "available"
       book.due_date = nil
       book.renter = nil
@@ -212,5 +212,5 @@ library.check_out(nicole, derp)
 
 puts "----------------------------"
 
-
+library.book_status
 
